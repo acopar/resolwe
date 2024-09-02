@@ -53,6 +53,15 @@ KUBERNETES_MEMORY_HARD_LIMIT_BUFFER = 2000
 # Timeout (in seconds) to wait for response from kubernetes API.
 KUBERNETES_TIMEOUT = 30
 
+INFINITY = float("inf")
+
+# The busket for CPU / memory ratio.
+RESOUCES_TAGS = {
+    (-INFINITY, 1 / 6): "memory-optimized",
+    (1 / 6, 1 / 3): "general-purpose",
+    (1 / 3, INFINITY): "cpu-optimized",
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -665,6 +674,7 @@ class Connector(BaseConnector):
         # Set resource limits.
         requests = dict()
         limits = data.get_resource_limits()
+        cpu_memory_ration = limits["cores"] / limits["memory"]
         overcommit_factors = self._get_overcommit_factors(data)
 
         requests["cpu"] = limits["cores"] * overcommit_factors["cpu"]
@@ -717,6 +727,10 @@ class Connector(BaseConnector):
 
         annotations = dict()
 
+        for (lower, upper), tag in RESOUCES_TAGS.items():
+            if lower < cpu_memory_ration <= upper:
+                annotations["resolwe.com/nodegroup"] = tag
+
         # Do not evict job from node.
         annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"] = "false"
 
@@ -742,6 +756,7 @@ class Connector(BaseConnector):
         communicator_image = self._image_mapper(communicator_image, mapper)
 
         requirements = data.process.requirements.get("executor", {}).get("docker", {})
+
         processing_container_image = str(
             requirements.get(
                 "image",

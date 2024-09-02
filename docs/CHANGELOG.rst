@@ -15,7 +15,8 @@ Added
 - Allow overriding the number of max metrics points that are exported in the
   same batch via ``RESOLWE_METRICS_EXPORT_SIZE`` environmental
   variable(defaults to 1000)
-
+- Add annotation ``nodegroup`` with the values ``cpu-optimized``,
+  ``memory-optimized`` and ``general-purpose``
 Changed
 -------
 - Move metrics endpoint configuration to Django settings and read it from
